@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IIT Tirupati CV Builder</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e8e8e4; color: #1d1d1b; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+  /* ---------- toolbar ---------- */
+  #bar { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 16px; background: #fff; border-bottom: 1px solid #d4d4ce; }
+  #bar strong { font-size: 15px; margin-right: auto; }
+  #status { color: #6b6b66; font-size: 13px; }
+  #warn { color: #a15c00; font-size: 13px; }
+  #bar button { font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px; border: 1px solid #cfcfc8; background: #fff; color: inherit; cursor: pointer; }
+  #bar button:hover { border-color: #888; }
+  #bar button:focus-visible, .ctl:focus-visible, #delbtn:focus-visible { outline: 2px solid #1f5fbf; outline-offset: 2px; }
+  #bar .primary { background: #1f5fbf; border-color: #1f5fbf; color: #fff; font-weight: 600; }
+  #bar .danger { color: #b3261e; }
+  #hint { display: none; text-align: center; padding: 8px 16px; font-size: 13px; color: #4a4a45; background: #f4f1dc; border-bottom: 1px solid #e3deb8; }
+  .editing #hint { display: block; }
+  #note { max-width: 210mm; margin: 0 auto 28px; padding: 0 12px; color: #6b6b66; font-size: 13px; text-align: center; }
+
+  /* ---------- paper ---------- */
+  #wrap { zoom: var(--z, 1); padding: 16px 0 12px; }
+  #page { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; color: #000; padding: 8mm 12mm 10mm 14mm;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2), 0 8px 24px rgba(0,0,0,.08);
+    font: 11pt/1.25 "Latin Modern Roman", "CMU Serif", "Computer Modern", Georgia, "Times New Roman", serif; }
+  #page a { color: #0000ee; text-decoration: none; }
+
+  .hd { display: flex; gap: 3mm; align-items: flex-start; margin-bottom: 1mm; }
+  .logo { flex: none; width: 20mm; }
+  .logo img { display: none; width: 20mm; height: auto; }
+  .logo.has img { display: block; }
+  .logo span { display: none; }
+  .logo:not(.has) { display: none; }
+  .hd-main { flex: 1; min-width: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 6mm; }
+  .hd-left { min-width: 0; }
+  .hd-right { flex: none; max-width: 62%; display: flex; flex-direction: column; align-items: flex-end; }
+  .hline { display: flex; flex-wrap: wrap; justify-content: flex-end; }
+  .hline:first-of-type { line-height: 21.6pt; }
+  .lk { flex: none; white-space: nowrap; word-break: keep-all; }
+  .hline .lk + .lk { border-left: 1px solid #000; margin-left: 1.6mm; padding-left: 1.6mm; }
+  #lkbar { position: fixed; display: none; z-index: 20; height: 24px; background: #fff; border: 1px solid #b9b9b2; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,.15); overflow: hidden; }
+  #lkbar button { font: 12px/1 system-ui, sans-serif; height: 22px; padding: 0 9px; border: 0; border-right: 1px solid #e2e2dc; background: #fff; color: #333; cursor: pointer; }
+  #lkbar button:last-child { border-right: 0; color: #b3261e; }
+  #lkbar button:hover { background: #eef3fb; }
+  .name { font-size: 17.3pt; font-weight: bold; line-height: 1.25; }
+
+  section { position: relative; margin-top: 2.5mm; }
+  h2 { margin: 0 0 1mm; font-size: 12pt; font-weight: bold; font-variant: small-caps; line-height: 1.3; border-bottom: .4pt solid #000; padding-bottom: .3mm; }
+  .entry { position: relative; margin-top: .8mm; }
+  .row1, .row2 { display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; }
+  .row1 > :first-child { min-width: 0; }
+  .row1 > :last-child:not(:first-child), .row2 > :last-child:not(:first-child) { flex: none; white-space: nowrap; }
+  .row1 i { font-size: 8pt; }
+  .row2 { font-size: 8pt; }
+  .por .row1 > i { font-size: 10pt; }
+  ul.items { margin: .3mm 2ex .5mm 0; padding: 0 0 0 3ex; font-size: 10pt; text-align: justify; }
+  ul.items li::marker { font-size: .65em; }
+  .sk { padding-left: 3.4mm; margin-top: 1.4mm; }
+  .sk::before { content: ""; position: absolute; left: .6mm; top: .55em; width: 1.3mm; height: 1.3mm; border-radius: 50%; background: #000; }
+  table.edu { width: 100%; border-collapse: collapse; font-size: 10pt; text-align: center; margin-top: .5mm; }
+  table.edu th, table.edu td { border: .5pt solid #000; padding: .9mm 5pt; }
+
+  /* ---------- edit mode ---------- */
+  .ctl { display: none; }
+  .editing .ctl { display: inline-block; font: 12px/1.3 system-ui, sans-serif; margin: 2px 0 0; padding: 1px 9px; border: 1px dashed #8a8a84; border-radius: 4px; background: none; color: #555; cursor: pointer; }
+  .editing .ctl:hover { background: #eef3fb; border-color: #1f5fbf; color: #1f5fbf; }
+  .editing [contenteditable="true"] { cursor: text; border-radius: 2px; }
+  .editing [contenteditable="true"]:hover { background: #eaf1fc; }
+  .editing [contenteditable="true"]:focus { outline: 1.5px solid #1f5fbf; background: #f3f7fe; }
+  .editing [contenteditable="true"]:empty::before { content: attr(data-ph); color: #9aa3ad; }
+  .editing li:empty::before { content: "New bullet"; color: #9aa3ad; }
+  .editing td:empty::before, .editing th:empty::before { content: "\00a0"; }
+  .editing .logo:not(.has) { display: block; height: 20mm; border: 1px dashed #8a8a84; cursor: pointer; font: 11px/1.3 system-ui, sans-serif; color: #666; text-align: center; padding-top: 6.5mm; }
+  .editing .logo:not(.has) span { display: block; }
+  .editing .logo.has { cursor: pointer; }
+  #delbtn { position: fixed; display: none; z-index: 20; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid #b3261e; background: #fff; color: #b3261e; font: 15px/1 system-ui, sans-serif; cursor: pointer; }
+  #delbtn:hover { background: #b3261e; color: #fff; }
+
+  /* ---------- print ---------- */
+  @page { size: A4; margin: 8mm 12mm 10mm 14mm; }
+  @media print {
+    body { background: #fff; }
+    #bar, #hint, #note, #delbtn, #lkbar, .ctl { display: none !important; }
+    #wrap { zoom: 1 !important; padding: 0; }
+    #page { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
+    .logo:not(.has) { display: none !important; }
+    h2, .entry, table.edu tr { break-inside: avoid; }
+    h2 { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <strong>IIT Tirupati CV Builder</strong>
+  <span id="status"></span>
+  <span id="warn" hidden>Longer than one page</span>
+  <button id="edit">Edit</button>
+  <button id="save">Save</button>
+  <button id="reset" class="danger">Reset</button>
+  <button id="tex">Download .tex</button>
+  <button id="pdf" class="primary">Download PDF</button>
+</div>
+<div id="hint">Click any text to edit. Hover an item to delete it. Double-click a link to change its address. Press Enter in a bullet to add another. Hover a header link to move it (◀ ▶), start a new line, join the line above, or delete it. "+ add link" adds more (LeetCode, portfolio…).</div>
+
+<div id="wrap">
+<div id="page">
+<div id="cv">
+
+  <div class="hd">
+    <div class="logo" id="logo" title="Click to upload your logo"><img src="logo.png" alt="" onload="this.parentNode.classList.add('has')" onerror="this.parentNode.classList.remove('has')"><span>Click to<br>add logo</span></div>
+    <div class="hd-main">
+      <div class="hd-left">
+        <div class="f name" data-f="name" data-ph="Your name">Your Name</div>
+        <div class="f" data-f="course" data-ph="Degree">BTech</div>
+        <div class="f" data-f="dept" data-ph="Department">Computer Science Engineering</div>
+        <div class="f" data-f="inst" data-ph="Institute">Indian Institute Of Technology, Tirupati</div>
+      </div>
+      <div class="hd-right">
+        <div class="hline"><span class="lk f" data-ph="Phone">+91&nbsp;9876543210</span></div>
+        <div class="hline"><a class="lk f" data-f="email" data-ph="Email" href="mailto:rollno@iittp.ac.in">rollno@iittp.ac.in</a></div>
+        <div class="hline"><a class="lk f" data-ph="Link text" href="https://github.com/yourusername">Github</a></div>
+        <div class="hline"><a class="lk f" data-ph="Link text" href="https://www.linkedin.com/in/yourprofile/">LinkedIn</a></div>
+        <button class="ctl add" data-add="link">+ add link</button>
+      </div>
+    </div>
+  </div>
+
+  <section data-type="table"><h2>Education</h2>
+    <table class="edu"><thead><tr><th>Degree/Certificate</th><th>Institute/Board</th><th>CGPA/Percentage</th><th>Year</th></tr></thead><tbody>
+      <tr><td>B.Tech. (CSE)</td><td>Indian Institute of Technology, Tirupati</td><td>8.21</td><td>2022-2026</td></tr>
+      <tr><td>Senior Secondary</td><td>CBSE Board</td><td>88.0%</td><td>2014</td></tr>
+      <tr><td>Secondary</td><td>CBSE Board</td><td>85.5%</td><td>2012</td></tr>
+    </tbody></table><button class="ctl add" data-add="row">+ add row</button>
+  </section>
+
+  <section data-type="exp"><h2>Experience</h2>
+    <div class="list">
+      <div class="entry"><div class="row1"><b class="f" data-k="a" data-ph="Company">Tata Consultancy Services</b><i class="f" data-k="b" data-ph="Dates">Aug 2023 - Nov. 2023</i></div><div class="row2"><i class="f" data-k="c" data-ph="Role">Assistant System Engineer</i><span class="f" data-k="d" data-ph="Location">Kolkata</span></div><ul class="items"><li>Managed ETL process for reporting purposes in a team of 4, improved PL/SQL packages for faster and consistent data flow. Reduced month-end activity time by 10hrs, created Alteryx Workflows for Data analysis and validations.</li><li>Developed a plugin that simplified the debugging process by differentiating log messages with a different colour that helped the support team while investigating incidents.</li></ul><button class="ctl add" data-add="item">+ bullet</button></div>
+      <div class="entry"><div class="row1"><b class="f" data-k="a" data-ph="Company">Thinking Stack Inc.</b><i class="f" data-k="b" data-ph="Dates">Dec. 2023 - Jan. 2024</i></div><div class="row2"><i class="f" data-k="c" data-ph="Role">Full Stack Developer Intern</i><span class="f" data-k="d" data-ph="Location">Bengaluru, India</span></div><ul class="items"><li>Developed web app using ReactJS and deployed the app to AWS EC2 using Docker.</li><li>Made website mobile-friendly and increased Google web dev score by 50 points.</li></ul><button class="ctl add" data-add="item">+ bullet</button></div>
+    </div><button class="ctl add" data-add="exp">+ add experience</button>
+  </section>
+
+  <section data-type="proj"><h2>Projects</h2>
+    <div class="list">
+      <div class="entry"><div class="row1"><b class="f" data-k="a" data-ph="Project name">Project Tracker</b><i class="f" data-k="b" data-ph="Dates">Feb. 2023 - Mar. 2023</i></div><div class="row2"><i class="f" data-k="c" data-ph="One-line description">Developed progress tracker for clients to track payments, progress, meetings.</i><a class="f" data-k="d" data-ph="Link" href="https://github.com/">Github</a></div><ul class="items"><li><b>Tools &amp; technologies used</b>: NextJs/ReactJS, Strapi/Node, Tailwind/CSS</li><li>Created APIs to fetch crop production data and displayed them into Geo-referenced Map.</li></ul><button class="ctl add" data-add="item">+ bullet</button></div>
+      <div class="entry"><div class="row1"><b class="f" data-k="a" data-ph="Project name">Kisan Mitra (SIH 2023)</b><i class="f" data-k="b" data-ph="Dates">Feb. 2023 - Mar. 2023</i></div><div class="row2"><i class="f" data-k="c" data-ph="One-line description">Web Portal for Ministry of Agriculture to view the predicted crop yield data in geo-referenced map.</i><a class="f" data-k="d" data-ph="Link" href="https://github.com/">Github</a></div><ul class="items"><li><b>Tools &amp; technologies used</b>: QGIS, Java, HTML, CSS, JS, ChartistJS</li><li>Created APIs to fetch crop production data and displayed them into Geo-referenced Map.</li></ul><button class="ctl add" data-add="item">+ bullet</button></div>
+    </div><button class="ctl add" data-add="proj">+ add project</button>
+  </section>
+
+  <section data-type="skills"><h2>Technical Skills</h2>
+    <div class="list">
+      <div class="entry sk"><b class="f" data-k="a" data-ph="Label:">Programming:</b> <span class="f" data-k="c" data-ph="Details">C/C++, Python, R, JavaScript, SQL</span></div>
+      <div class="entry sk"><b class="f" data-k="a" data-ph="Label:">Tools &amp; OS:</b> <span class="f" data-k="c" data-ph="Details">Git, Jupyter Notebook, Google Colab, Linux, Windows</span></div>
+      <div class="entry sk"><b class="f" data-k="a" data-ph="Label:">Libraries/Frameworks:</b> <span class="f" data-k="c" data-ph="Details">Pandas, Numpy, scikit-learn, JQuery</span></div>
+      <div class="entry sk"><b class="f" data-k="a" data-ph="Label:">Web Skills:</b> <span class="f" data-k="c" data-ph="Details">HTML/CSS/JS, ReactJS/NextJS</span></div>
+    </div><button class="ctl add" data-add="sk">+ add line</button>
+  </section>
+
+  <section data-type="skills"><h2>Key Courses Taken</h2>
+    <div class="list">
+      <div class="entry sk"><span class="f" data-k="c" data-ph="Courses">Data Structure, Algorithms, DBMS, Machine Learning, Artificial Intelligence, Web Services, Operating System</span></div>
+    </div>
+  </section>
+
+  <section data-type="por"><h2>Positions of Responsibility</h2>
+    <div class="list">
+      <div class="entry por"><div class="row1"><span><b class="f" data-k="a" data-ph="Position,">Assistant Head Coordinator,</b> <span class="f" data-k="c" data-ph="Organisation">Training &amp; Placement Cell, IIT Tirupati</span></span><i class="f" data-k="b" data-ph="Tenure">Present</i></div></div>
+      <div class="entry por"><div class="row1"><span><b class="f" data-k="a" data-ph="Position,">General Secretary,</b> <span class="f" data-k="c" data-ph="Organisation">Nexus Coding Club, IIT Tirupati</span></span><i class="f" data-k="b" data-ph="Tenure">Apr. 2023 - Apr. 2024</i></div></div>
+    </div><button class="ctl add" data-add="por">+ add position</button>
+  </section>
+
+  <section data-type="por"><h2>Achievements</h2>
+    <div class="list">
+      <div class="entry por"><div class="row1"><span><b class="f" data-k="a" data-ph="Award">Secured 1st Position</b> <span class="f" data-k="c" data-ph="Event">Smart India Hackathon, MHRD, Government of India. Won prize of 1 Lakh INR.</span></span><i class="f" data-k="b" data-ph="Year">2019</i></div></div>
+      <div class="entry por"><div class="row1"><span><b class="f" data-k="a" data-ph="Award">Winner</b> <span class="f" data-k="c" data-ph="Event">Web Designing Competition (URECKON'18) organized by University of Engineering &amp; Management, ISRO</span></span><i class="f" data-k="b" data-ph="Year">2018</i></div></div>
+      <div class="entry por"><div class="row1"><span><b class="f" data-k="a" data-ph="Award">Github Arctic Code Vault Contributor</b> <span class="f" data-k="c" data-ph="Event">Contributed code to several repositories in the 2020 GitHub Archive Program</span></span><i class="f" data-k="b" data-ph="Year">2020</i></div></div>
+    </div><button class="ctl add" data-add="por">+ add achievement</button>
+  </section>
+
+  <section data-type="por"><h2>Certifications</h2>
+    <div class="list">
+      <div class="entry por"><div class="row1"><span class="f" data-k="c" data-ph="Certification">Datacamp Certification on Introduction to R</span></div></div>
+      <div class="entry por"><div class="row1"><span class="f" data-k="c" data-ph="Certification">NPTEL Certification on Database Management System</span></div></div>
+      <div class="entry por"><div class="row1"><span class="f" data-k="c" data-ph="Certification">Internshala Certification on Web Development</span></div></div>
+    </div><button class="ctl add" data-add="cert">+ add certification</button>
+  </section>
+
+  <button class="ctl add-sec" id="addSec">+ Add section</button>
+
+</div>
+</div>
+</div>
+
+<p id="note">Your CV is stored only in this browser. For the PDF, choose “Save as PDF” in the print window and turn off “Headers and footers”.</p>
+
+<div id="lkbar"><button data-a="left" title="Move left">◀</button><button data-a="right" title="Move right">▶</button><button data-a="br">New line</button><button data-a="del" title="Delete this link">×</button></div>
+<button id="delbtn" title="Delete" aria-label="Delete">×</button>
+<input type="file" id="logoIn" accept="image/*" hidden>
+
+<!-- LaTeX preamble used by "Download .tex" (your original template) -->
+<script type="text/plain" id="preamble">
+\documentclass[a4paper,11pt]{article}
+% \definecolor{darkbrown}{RGB}{101, 67, 33} % Define a dark brown color
+\usepackage{latexsym}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{ragged2e}
+\usepackage[empty]{fullpage}
+\usepackage{wrapfig}
+\usepackage{lipsum}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{geometry}
+\usepackage{marvosym}
+\usepackage{verbatim}
+\usepackage{enumitem}
+% \usepackage[hidelinks]{hyperref}
+\usepackage[colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{cfr-lm}
+\usepackage[T1]{fontenc}
+\setlength{\multicolsep}{0pt} 
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\geometry{left=1.4cm, top=0.8cm, right=1.2cm, bottom=1cm}
+\usepackage[most]{tcolorbox}
+\tcbset{
+	frame code={}
+	center title,
+	left=0pt,
+	right=0pt,
+	top=0pt,
+	bottom=0pt,
+	colback=gray!20,
+	colframe=white,
+	width=\dimexpr\textwidth\relax,
+	enlarge left by=-2mm,
+	boxsep=4pt,
+	arc=0pt,outer arc=0pt,
+}
+
+\urlstyle{same}
+
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-10pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-7pt}]
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[2]{
+  \item{
+    \textbf{#1}{\hspace{0.5mm}#2 \vspace{-0.5mm}}
+  }
+}
+
+\newcommand{\resumePOR}[3]{
+\vspace{0.5mm}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+        \textbf{#1}\hspace{0.3mm}#2 & \textit{\small{#3}} 
+    \end{tabular*}
+    \vspace{-2mm}
+}
+
+\newcommand{\resumeSubheading}[4]{
+\vspace{0.5mm}\item
+    \begin{tabular*}{0.98\textwidth}[t]{l@{\extracolsep{\fill}}r}
+        \textbf{#1} & \textit{\footnotesize{#4}} \\
+        \textit{\footnotesize{#3}} &  \footnotesize{#2}\\
+    \end{tabular*}
+    \vspace{-2.4mm}
+}
+
+\newcommand{\resumeProject}[4]{
+\vspace{0.5mm}\item
+    \begin{tabular*}{0.98\textwidth}[t]{l@{\extracolsep{\fill}}r}
+        \textbf{#1} & \textit{\footnotesize{#3}} \\
+        \footnotesize{\textit{#2}} & \footnotesize{#4}
+    \end{tabular*}
+    \vspace{-2.4mm}
+}
+
+\newcommand{\resumeSubItem}[2]{\resumeItem{#1}{#2}\vspace{-4pt}}
+
+\renewcommand{\labelitemi}{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*,labelsep=0mm]}
+\newcommand{\resumeHeadingSkillStart}{\begin{itemize}[leftmargin=*,itemsep=1.7mm, rightmargin=2ex]}
+\newcommand{\resumeItemListStart}{\begin{justify}\begin{itemize}[leftmargin=3ex, rightmargin=2ex, noitemsep,labelsep=1.2mm,itemsep=0mm]\small}
+
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}\vspace{2mm}}
+\newcommand{\resumeHeadingSkillEnd}{\end{itemize}\vspace{-2mm}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\end{justify}\vspace{-2mm}}
+\newcommand{\cvsection}[1]{%
+\vspace{2mm}
+\begin{tcolorbox}
+    \textbf{\large #1}
+\end{tcolorbox}
+    \vspace{-4mm}
+}
+
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}%
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}%
+\newcolumntype{C}{>{\centering\arraybackslash}X}%
+%---- End of Packages and Functions ------
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var cv = $('#cv'), wrap = $('#wrap');
+  var KEY = 'iitt-cv-builder:v2';
+  var FIELD = '.f, li, td, th, h2';
+  var DELETABLE = 'li, tbody tr, .entry, section';
+  var editing = false, timer = null, hov = null;
+
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+    del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  function say(t) { $('#status').textContent = t; }
+
+  // ---- Templates for "add" buttons
+  var BTN_ITEM = '<button class="ctl add" data-add="item">+ bullet</button>';
+  var TPL = {
+    link: '<div class="hline"><a class="lk f" data-ph="Link text" href="https://">Link</a></div>',
+    item: '<li></li>',
+    row: '<tr><td></td><td></td><td></td><td></td></tr>',
+    exp: '<div class="entry"><div class="row1"><b class="f" data-k="a" data-ph="Company"></b><i class="f" data-k="b" data-ph="Dates"></i></div><div class="row2"><i class="f" data-k="c" data-ph="Role"></i><span class="f" data-k="d" data-ph="Location"></span></div><ul class="items"><li></li></ul>' + BTN_ITEM + '</div>',
+    proj: '<div class="entry"><div class="row1"><b class="f" data-k="a" data-ph="Project name"></b><i class="f" data-k="b" data-ph="Dates"></i></div><div class="row2"><i class="f" data-k="c" data-ph="One-line description"></i><a class="f" data-k="d" data-ph="Link" href="https://github.com/">Github</a></div><ul class="items"><li></li></ul>' + BTN_ITEM + '</div>',
+    por: '<div class="entry por"><div class="row1"><span><b class="f" data-k="a" data-ph="Title,"></b> <span class="f" data-k="c" data-ph="Details"></span></span><i class="f" data-k="b" data-ph="Year"></i></div></div>',
+    cert: '<div class="entry por"><div class="row1"><span class="f" data-k="c" data-ph="Certification"></span></div></div>',
+    sk: '<div class="entry sk"><b class="f" data-k="a" data-ph="Label:"></b> <span class="f" data-k="c" data-ph="Details"></span></div>'
+  };
+
+  // ---- Load saved copy
+  var DEFAULT_HTML = cv.innerHTML;
+  var saved = store.get(KEY);
+  if (saved) cv.innerHTML = saved;
+
+  function applyEditable() {
+    cv.querySelectorAll(FIELD).forEach(function (el) {
+      if (editing) el.setAttribute('contenteditable', 'true');
+      else el.removeAttribute('contenteditable');
+    });
+  }
+
+  // ---- Save
+  function serialize() {
+    var c = cv.cloneNode(true);
+    c.querySelectorAll('[contenteditable]').forEach(function (x) { x.removeAttribute('contenteditable'); });
+    return c.innerHTML;
+  }
+  function save() {
+    clearTimeout(timer);
+    var ok = store.set(KEY, serialize());
+    say(ok ? 'Saved' : 'Could not save in this browser. Download your CV instead.');
+  }
+  function check() {
+    var limit = (297 - 18) * 96 / 25.4;
+    $('#warn').hidden = cv.offsetHeight <= limit + 2;
+  }
+  function queue() {
+    say('Editing…');
+    clearTimeout(timer);
+    timer = setTimeout(save, 600);
+    check();
+  }
+
+  // ---- Edit toggle
+  $('#edit').addEventListener('click', function () {
+    editing = !editing;
+    document.body.classList.toggle('editing', editing);
+    this.textContent = editing ? 'Done' : 'Edit';
+    applyEditable();
+    hideDel();
+    hideLk();
+    if (!editing) save();
+  });
+  $('#save').addEventListener('click', save);
+
+  // ---- Reset
+  $('#reset').addEventListener('click', function () {
+    if (!confirm('Reset your CV to the original template? Your changes will be erased.')) return;
+    store.del(KEY);
+    cv.innerHTML = DEFAULT_HTML;
+    applyEditable();
+    hideDel();
+    hideLk();
+    check();
+    say('Reset to template');
+  });
+
+  // ---- Typing
+  cv.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.f === 'email' && t.tagName === 'A') {
+      t.setAttribute('href', 'mailto:' + t.textContent.trim());
+    }
+    queue();
+  });
+  cv.addEventListener('paste', function (e) {
+    if (!editing) return;
+    e.preventDefault();
+    var txt = (e.clipboardData || window.clipboardData).getData('text/plain').replace(/\s*\n\s*/g, ' ');
+    document.execCommand('insertText', false, txt);
+  });
+  function caretEnd(el) {
+    el.focus();
+    var r = document.createRange();
+    r.selectNodeContents(el); r.collapse(false);
+    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+  cv.addEventListener('keydown', function (e) {
+    if (!editing) return;
+    var el = e.target;
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (el.tagName === 'LI') {
+        var n = document.createElement('li');
+        n.setAttribute('contenteditable', 'true');
+        el.after(n); n.focus(); queue();
+      }
+    } else if (e.key === 'Backspace' && el.tagName === 'LI' && !el.textContent.trim() && el.parentNode.children.length > 1) {
+      e.preventDefault();
+      var p = el.previousElementSibling || el.nextElementSibling;
+      el.remove(); caretEnd(p); queue();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
+  });
+
+  // ---- Clicks: add buttons, links, logo
+  cv.addEventListener('click', function (e) {
+    if (!editing) return;
+    if (e.target.closest('a')) e.preventDefault();
+
+    var add = e.target.closest('button.add');
+    if (add && add.dataset.add === 'link') {
+      add.insertAdjacentHTML('beforebegin', TPL.link);
+      applyEditable();
+      var nl = add.previousElementSibling.querySelector('.f');
+      nl.focus();
+      queue();
+      return;
+    }
+    if (add) {
+      var c = add.previousElementSibling;
+      var host = c.tagName === 'TABLE' ? c.tBodies[0] : c;
+      host.insertAdjacentHTML('beforeend', TPL[add.dataset.add]);
+      applyEditable();
+      var n = host.lastElementChild;
+      var f = n.matches(FIELD) ? n : n.querySelector(FIELD);
+      if (f) f.focus();
+      queue();
+      return;
+    }
+    var sec = e.target.closest('#addSec');
+    if (sec) {
+      var title = (prompt('Name of the new section') || '').trim();
+      if (!title) return;
+      var s = document.createElement('section');
+      s.dataset.type = 'skills';
+      s.innerHTML = '<h2></h2><div class="list">' + TPL.sk + '</div><button class="ctl add" data-add="sk">+ add line</button>';
+      s.querySelector('h2').textContent = title;
+      sec.before(s);
+      applyEditable();
+      queue();
+      return;
+    }
+    if (e.target.closest('.logo')) $('#logoIn').click();
+  });
+  cv.addEventListener('dblclick', function (e) {
+    if (!editing) return;
+    var a = e.target.closest('a');
+    if (!a || a.dataset.f === 'email') return;
+    var u = prompt('Link address', a.getAttribute('href') || '');
+    if (u !== null) { a.setAttribute('href', u.trim()); queue(); }
+  });
+
+  // ---- Logo upload (resized so it stays small in storage)
+  $('#logoIn').addEventListener('change', function () {
+    var file = this.files[0], input = this;
+    if (!file) return;
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var s = Math.min(1, 300 / Math.max(img.width, img.height));
+      var cnv = document.createElement('canvas');
+      cnv.width = Math.round(img.width * s); cnv.height = Math.round(img.height * s);
+      cnv.getContext('2d').drawImage(img, 0, 0, cnv.width, cnv.height);
+      $('#logo img').src = cnv.toDataURL('image/png');
+      URL.revokeObjectURL(url);
+      input.value = '';
+      queue();
+    };
+    img.src = url;
+  });
+
+  // ---- Floating delete button
+  var delbtn = $('#delbtn');
+  function hideDel() { delbtn.style.display = 'none'; hov = null; }
+  function placeDel() {
+    if (!hov || !editing || !document.body.contains(hov)) return hideDel();
+    var r = hov.getBoundingClientRect();
+    delbtn.style.display = 'block';
+    delbtn.style.top = (r.top + 2) + 'px';
+    delbtn.style.left = (r.right + 4) + 'px';
+  }
+  function target(e) {
+    if (!editing) return;
+    var lk = e.target.closest ? e.target.closest('.lk') : null;
+    if (lk) showLk(lk); else hideLk();
+    var t = e.target.closest ? e.target.closest(DELETABLE) : null;
+    if (t && cv.contains(t)) { hov = t; placeDel(); }
+  }
+  cv.addEventListener('mouseover', target);
+  cv.addEventListener('focusin', target);
+  window.addEventListener('scroll', placeDel, { passive: true });
+  delbtn.addEventListener('click', function () {
+    if (!hov) return;
+    if (hov.tagName === 'SECTION') {
+      var h = hov.querySelector('h2');
+      if (!confirm('Delete the "' + (h ? h.textContent.trim() : 'this') + '" section?')) return;
+    }
+    hov.remove();
+    hideDel();
+    queue();
+  });
+
+  // ---- Header link toolbar (move / new line / join / delete)
+  var lkbar = $('#lkbar'), curLk = null;
+  function hideLk() { lkbar.style.display = 'none'; curLk = null; }
+  function showLk(a) {
+    curLk = a;
+    var line = a.parentNode;
+    var first = !a.previousElementSibling;
+    var prevLine = line.previousElementSibling;
+    var canJoin = first && prevLine && prevLine.classList.contains('hline');
+    lkbar.querySelector('[data-a="br"]').textContent = canJoin ? 'Join line above' : 'New line';
+    lkbar.querySelector('[data-a="br"]').style.display = (first && !canJoin) ? 'none' : '';
+    lkbar.style.display = 'flex';
+    var r = a.getBoundingClientRect(), w = lkbar.offsetWidth;
+    var top = r.top - 24; if (top < 50) top = r.bottom;
+    var left = Math.max(4, Math.min(r.right - w, window.innerWidth - w - 4));
+    lkbar.style.top = top + 'px';
+    lkbar.style.left = left + 'px';
+  }
+  function cleanLines() {
+    cv.querySelectorAll('.hd-right .hline').forEach(function (l) { if (!l.querySelector('.lk')) l.remove(); });
+  }
+  lkbar.addEventListener('mousedown', function (e) { e.preventDefault(); });
+  lkbar.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || !curLk) return;
+    var a = curLk, line = a.parentNode, act = b.dataset.a;
+    if (act === 'del') { a.remove(); cleanLines(); hideLk(); queue(); return; }
+    if (act === 'left') {
+      var p = a.previousElementSibling;
+      if (p) line.insertBefore(a, p);
+      else { var pl = line.previousElementSibling; if (pl && pl.classList.contains('hline')) pl.appendChild(a); }
+    } else if (act === 'right') {
+      var n = a.nextElementSibling;
+      if (n) n.after(a);
+      else { var nl = line.nextElementSibling; if (nl && nl.classList.contains('hline')) nl.insertBefore(a, nl.firstElementChild); }
+    } else if (act === 'br') {
+      if (a.previousElementSibling) {
+        var newLine = document.createElement('div');
+        newLine.className = 'hline';
+        var rest = [], m = a;
+        while (m) { rest.push(m); m = m.nextElementSibling; }
+        rest.forEach(function (x) { newLine.appendChild(x); });
+        line.after(newLine);
+      } else {
+        var above = line.previousElementSibling;
+        if (above && above.classList.contains('hline')) {
+          while (line.firstElementChild) above.appendChild(line.firstElementChild);
+        }
+      }
+    }
+    cleanLines();
+    showLk(a);
+    queue();
+  });
+  window.addEventListener('scroll', function () { if (curLk) showLk(curLk); }, { passive: true });
+  window.addEventListener('resize', function () { if (curLk) showLk(curLk); });
+
+  // ---- PDF (browser print dialog)
+  $('#pdf').addEventListener('click', function () {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    var old = document.title;
+    var n = (cv.querySelector('[data-f="name"]') || {}).textContent || '';
+    document.title = (n.replace(/[^\w\- ]+/g, '').trim() || 'My') + ' CV';
+    window.addEventListener('afterprint', function () { document.title = old; }, { once: true });
+    window.print();
+  });
+
+  // ---- LaTeX export
+  var MAP = { '\\': '\\textbackslash{}', '&': '\\&', '%': '\\%', '$': '\\$', '#': '\\#', '_': '\\_', '{': '\\{', '}': '\\}', '~': '\\textasciitilde{}', '^': '\\textasciicircum{}' };
+  function esc(s) { return s.replace(/[\\&%$#_{}~^]/g, function (c) { return MAP[c]; }); }
+  function inl(n) {
+    var o = '';
+    n.childNodes.forEach(function (c) {
+      if (c.nodeType === 3) { o += esc(c.nodeValue.replace(/\u00a0/g, ' ')); return; }
+      if (c.nodeType !== 1 || c.classList.contains('ctl')) return;
+      var t = c.tagName, k = inl(c);
+      if (t === 'B' || t === 'STRONG') o += k.trim() ? '\\textbf{' + k + '}' : k;
+      else if (t === 'I' || t === 'EM') o += k.trim() ? '\\textit{' + k + '}' : k;
+      else if (t === 'U') o += k.trim() ? '\\underline{' + k + '}' : k;
+      else if (t === 'A') o += '\\href{' + (c.getAttribute('href') || '').replace(/[%#\\]/g, '\\$&') + '}{' + k + '}';
+      else if (t === 'BR') o += ' \\\\ ';
+      else o += k;
+    });
+    return o;
+  }
+  function T(el) { return el ? inl(el).replace(/\s+/g, ' ').trim() : ''; }
+  function F(el) {
+    if (!el) return '';
+    if (el.tagName === 'A') return '\\href{' + (el.getAttribute('href') || '').replace(/[%#\\]/g, '\\$&') + '}{' + T(el) + '}';
+    return T(el);
+  }
+
+  function buildTex() {
+    var root = cv.cloneNode(true);
+    root.querySelectorAll('.ctl').forEach(function (x) { x.remove(); });
+    var f = function (n) { return root.querySelector('[data-f="' + n + '"]'); };
+    var g = function (e, k) { return e.querySelector('[data-k="' + k + '"]'); };
+
+    var lines = Array.prototype.map.call(root.querySelectorAll('.hd-right .hline'), function (l) {
+      return Array.prototype.map.call(l.querySelectorAll('.lk'), function (x) { var s = F(x); return s && x.tagName !== 'A' ? '\\mbox{' + s + '}' : s; }).filter(Boolean).join(' $|$ ');
+    }).filter(Boolean);
+    var left = ['\\textbf{\\LARGE \\name}', '\\course', '{' + T(f('dept')) + '}', '{' + T(f('inst')) + '}'];
+    var nrows = Math.max(left.length, lines.length), rows = [];
+    for (var i = 0; i < nrows; i++) rows.push([left[i] || '', lines[i] || '']);
+    var tab = '\\begin{tabularx}{\\linewidth}{L r}\n' + rows.map(function (r) { return '  ' + r.join(' & '); }).join(' \\\\\n') + '\n\\end{tabularx}';
+    var hasLogo = !!root.querySelector('.logo.has');
+    var hdr = hasLogo
+      ? '\\parbox{2.35cm}{%\n\n\\includegraphics[width=2cm,clip]{logo.png}\n\n}\\parbox{\\dimexpr\\linewidth-2.5cm\\relax}{\n' + tab + '\n}\n'
+      : tab + '\n';
+
+    var secs = Array.prototype.map.call(root.querySelectorAll('section'), function (s) {
+      var head = '\\section{\\textbf{' + T(s.querySelector('h2')) + '}}\n';
+      var entries = Array.prototype.slice.call(s.querySelectorAll('.entry'));
+      var type = s.dataset.type;
+
+      if (type === 'table') {
+        var th = Array.prototype.map.call(s.querySelectorAll('thead th'), function (x) { return '\\textbf{' + T(x) + '}'; }).join(' & ');
+        var body = Array.prototype.map.call(s.querySelectorAll('tbody tr'), function (r) {
+          return '  ' + Array.prototype.map.call(r.cells, function (c) { return T(c); }).join(' & ') + ' \\\\\n  \\hline\n';
+        }).join('');
+        return head + '\\setlength{\\tabcolsep}{5pt}\n\\small{\\begin{tabularx}\n{\\dimexpr\\textwidth-1mm\\relax}{|c|C|c|c|}\n  \\hline\n  ' + th + ' \\\\\n  \\hline\n' + body + '\\end{tabularx}}\n\\vspace{-2mm}\n';
+      }
+      if (type === 'exp' || type === 'proj') {
+        var items = entries.map(function (e) {
+          var h = type === 'exp'
+            ? '\\resumeSubheading\n  {' + F(g(e, 'a')) + '}{' + F(g(e, 'd')) + '}\n  {' + F(g(e, 'c')) + '}{' + F(g(e, 'b')) + '}\n'
+            : '\\resumeProject\n  {' + F(g(e, 'a')) + '}\n  {' + F(g(e, 'c')) + '}\n  {' + F(g(e, 'b')) + '}\n  {' + F(g(e, 'd')) + '}\n';
+          var lis = Array.prototype.map.call(e.querySelectorAll('li'), T).filter(Boolean);
+          var list = lis.length ? '  \\resumeItemListStart\n' + lis.map(function (t) { return '    \\item {' + t + '}\n'; }).join('') + '  \\resumeItemListEnd\n' : '';
+          return h + list;
+        }).join('\n');
+        return head + '\\resumeSubHeadingListStart\n\n' + items + '\n\\resumeSubHeadingListEnd\n\\vspace{-5.5mm}\n';
+      }
+      if (type === 'por') {
+        var p = entries.map(function (e) {
+          return '\\resumePOR{' + F(g(e, 'a')) + '}\n  {' + F(g(e, 'c')) + '}\n  {' + F(g(e, 'b')) + '}\n';
+        }).join('');
+        return head + '\\vspace{-0.4mm}\n\\resumeSubHeadingListStart\n' + p + '\\resumeSubHeadingListEnd\n\\vspace{-4mm}\n';
+      }
+      var sk = entries.map(function (e) {
+        return '  \\resumeSubItem{' + F(g(e, 'a')) + '}\n    {' + F(g(e, 'c')) + '}\n';
+      }).join('');
+      return head + '\\resumeHeadingSkillStart\n' + sk + '\\resumeHeadingSkillEnd\n';
+    });
+
+    return [
+      '% Generated by IIT Tirupati CV Builder',
+      '% If your CV has a logo, upload it next to this file as logo.png (Overleaf: Upload).',
+      '',
+      $('#preamble').textContent.trim(),
+      '',
+      '\\newcommand{\\name}{' + T(f('name')) + '}',
+      '\\newcommand{\\course}{' + T(f('course')) + '}',
+      '',
+      '\\begin{document}',
+      '\\fontfamily{cmr}\\selectfont',
+      hdr,
+      secs.join('\n'),
+      '\\end{document}',
+      ''
+    ].join('\n');
+  }
+
+  $('#tex').addEventListener('click', function () {
+    var blob = new Blob([buildTex()], { type: 'application/x-tex;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'resume.tex';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  // ---- Fit paper to small screens
+  function fit() {
+    var w = 210 * 96 / 25.4;
+    wrap.style.setProperty('--z', Math.min(1, (window.innerWidth - 16) / w));
+  }
+  window.addEventListener('resize', function () { fit(); placeDel(); });
+  fit();
+  check();
+  window.addEventListener('load', check);
+  say(saved ? 'Loaded your saved CV' : 'Edits save automatically in this browser');
+})();
+</script>
+</body>
+</html>
